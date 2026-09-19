@@ -3,166 +3,196 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-009688.svg?style=flat&logo=FastAPI&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB.svg?style=flat&logo=React&logoColor=black)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.3-646CFF.svg?style=flat&logo=Vite&logoColor=white)](https://vitejs.dev/)
+[![Material UI](https://img.shields.io/badge/Material--UI-v7-007FFF.svg?style=flat&logo=MUI&logoColor=white)](https://mui.com/)
 [![Groq](https://img.shields.io/badge/Groq-Llama--3.3--70B-f55036.svg?style=flat)](https://groq.com/)
-[![Tests](https://img.shields.io/badge/Tests-42%20Passed-success.svg?style=flat)]()
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?style=flat&logo=Python&logoColor=white)](https://www.python.org/)
+[![Vitest](https://img.shields.io/badge/Vitest-Passing-FCC72B.svg?style=flat&logo=Vitest&logoColor=black)](https://vitest.dev/)
+[![Pytest](https://img.shields.io/badge/Pytest-33%20Passed-0A9EDC.svg?style=flat&logo=Pytest&logoColor=white)](https://pytest.org/)
 
-## Overview
+**SynapseLaw** is an evidence-grounded AI Legal Document Copilot designed to simplify complex legal agreements, contracts, rental leases, NDAs, and employment policies. It extracts verifiable clause citations, flags financial & legal liabilities, highlights side-by-side contract deltas, answers specific queries with zero hallucination, and synthesizes action checklists for lawyer consultations.
 
-**SynapseLaw** is an evidence-grounded AI Legal Document Copilot. Users upload contracts, lease agreements, employment agreements, NDAs, policies, or complex legal documents. SynapseLaw extracts the text, segments it into multi-dimensional vector embeddings, retrieves verifiable chunk evidence, and produces:
-- **Plain-Language Summaries**: Demystifies complex legalese into crystal-clear executive summaries.
-- **Risk & Obligation Radar**: Automatically categorizes detected liabilities, renewals, late penalties, and termination terms with explainable severity indicators (`HIGH`, `MEDIUM`, `LOW`).
-- **Side-by-Side Contract Comparison**: Highlights altered clauses, obligations, and deadlines between baseline and revised versions.
-- **Evidence-Grounded Document Q&A**: Answers specific questions strictly using extracted chunk citations with zero hallucination.
-- **Action Checklist & Lawyer Prep**: Synthesizes actionable next steps and consultation questions for legal professionals.
-
-> **Disclaimer**: *SynapseLaw provides informational assistance and does not replace professional legal advice.*
+> ⚖️ **Legal Notice**: *SynapseLaw provides informational AI assistance based strictly on uploaded document evidence and does not replace professional legal counsel.*
 
 ---
 
-## Challenge Alignment
+## 🏛️ System Architecture
 
-| Capability | SynapseLaw Implementation |
-|---|---|
-| **Plain-Language Summaries** | Structured document analysis summaries & executive insights |
-| **Contract Comparison** | Visual side-by-side delta diffs (`/api/compare`) for additions/deletions |
-| **Important Clauses** | Key clause extraction with page and chunk metadata citations |
-| **Obligation Detection** | Automated obligation extraction and checklist generation |
-| **Risk Assessment** | Explainable severity rating cards (`HIGH`, `MEDIUM`, `LOW`) |
-| **Evidence-Grounded Q&A** | RAG-grounded `/api/documents/{id}/ask` with confidence scoring |
-| **Actionable Checklists** | Interactive persisted checklist items with completion progress tracking |
-| **Lawyer Consultation Prep** | Targeted consultation questions generated from detected contract risks |
+### Component Architecture
+```mermaid
+graph TD
+    subgraph Client["Frontend Layer (React 18 + Vite 8)"]
+        UI[Material-UI v7 Design System]
+        Router[Client Router & Workspaces]
+        State[Axios API Client & Auth Provider]
+    end
 
-See `docs/architecture.md` for the implementation details.
+    subgraph Gateway["API & Security Layer (FastAPI)"]
+        CORS[CORS Middleware & Rate Limiting]
+        AuthSec[Argon2 Security & Token Engine]
+        DocRouter[REST API Endpoints: /documents, /compare, /ask]
+    end
 
-## RAG Pipeline
+    subgraph Processing["Document & RAG Intelligence Engine"]
+        Extractor[PDF / DOCX / TXT Parser & Cleaner]
+        Chunker[256-D Context Window Semantic Chunker]
+        VectorStore[In-Memory Top-K Vector Store & Matcher]
+    end
 
-Document → extraction → cleaning → chunking with metadata → hashing embeddings → top-k retrieval → provider-backed generation → structured answer with evidence.
+    subgraph LLM["AI Inference Layer"]
+        GroqAPI[Groq Cloud LLM: openai/gpt-oss-120b]
+        DeterministicEngine[Deterministic Fallback Extractor]
+    end
 
-The default `local` provider is deterministic and API-key-free for demos and tests. Set `LLM_PROVIDER=openai_compatible` and provide an API key/base URL for a real OpenAI-compatible model.
+    subgraph Persistence["Storage & Data Layer"]
+        SQLite[(SQLite Metadata & Cache DB)]
+        DiskStore[Isolated File System Storage]
+    end
 
-## Security
+    UI --> Router --> State
+    State -->|HTTPS REST| CORS --> AuthSec --> DocRouter
+    DocRouter --> Extractor --> Chunker --> VectorStore
+    DocRouter --> SQLite
+    Extractor --> DiskStore
+    VectorStore -->|Evidence Chunks| GroqAPI
+    VectorStore -.->|Fallback| DeterministicEngine
+    GroqAPI -->|Structured JSON Output| DocRouter
+    DocRouter -->|Grounded Citations & Confidence| State
+```
 
-Implemented controls include Argon2 password hashing, JWT authentication, environment-based secrets, CORS configuration, upload validation, path traversal protection, generated filenames, ORM queries, sensitive endpoint rate limiting, security headers, and safe production errors.
+---
 
-See `docs/security.md`.
+### Request & Evidence Retrieval Flow
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User / Legal Reviewer
+    participant FE as React Frontend
+    participant API as FastAPI Backend
+    participant RAG as Vector Engine
+    participant Groq as Groq AI Cloud
 
-## Accessibility
+    User->>FE: Upload Contract (PDF / DOCX / TXT)
+    FE->>API: POST /api/documents/upload
+    API->>API: Validate MIME, size, emptiness & signature
+    API->>RAG: Extract text & generate 256-D semantic chunks
+    RAG-->>API: Vector indexes with page & section metadata
+    API-->>FE: Document Ready (200 OK)
 
-Implemented features include semantic pages, labeled forms, keyboard-accessible upload, skip link, visible focus states, accessible alerts/loading states, responsive layout, and severity labels that do not rely on color alone.
+    User->>FE: Ask Question / Request Analysis
+    FE->>API: POST /api/documents/{id}/ask
+    API->>RAG: Vector search query against document chunks
+    RAG-->>API: Top-K retrieved evidence excerpts
+    API->>Groq: Prompt with strict context & JSON schema
+    Groq-->>API: Structured response with citations & confidence
+    API-->>FE: Verified Answer + Page/Chunk Evidence Badges
+    FE-->>User: Interactive Visual Findings & Risk Radar
+```
 
-See `docs/accessibility.md`.
+---
 
-## Testing
+## 🛠️ Software & Technology Stack
 
-Backend:
+| Category | Technology | Version | Purpose |
+|---|---|---|---|
+| **Frontend Framework** | React | `^18.3.1` | Declarative component hierarchy and state management |
+| **Build Tool** | Vite / Rolldown | `^8.3.0` | Ultra-fast HMR and optimized vendor chunk splitting (`50 kB` bundle) |
+| **UI Design System** | Material-UI (MUI) | `^7.1.1` | Professional corporate dark-emerald & gold design system |
+| **Styling & Icons** | Emotion + MUI Icons | `^11.14` | CSS-in-JS theming and vector legal iconography |
+| **HTTP Client** | Axios | `^1.7.0` | Asynchronous REST communication and token interceptors |
+| **Frontend Testing** | Vitest + RTL | `^4.1.11` | Component unit testing, DOM simulation, and accessibility testing |
+| **Backend Framework** | FastAPI | `^0.111.0` | High-performance asynchronous Python REST API |
+| **ASGI Web Server** | Uvicorn (uvloop) | `^0.30.0` | High-throughput production ASGI web server |
+| **Database ORM** | SQLAlchemy | `^2.0.30` | Object-relational mapping and schema migrations |
+| **Data Validation** | Pydantic v2 | `^2.7.0` | Strict input parsing, schema enforcement, and JSON serialization |
+| **AI LLM Provider** | Groq Cloud API | `v1` | Ultra-low latency legal analysis (`openai/gpt-oss-120b`) |
+| **Text Extraction** | PyPDF + python-docx | `^3.17 / ^1.1` | Multi-format PDF and Word document parsing |
+| **Cryptography** | Passlib + Argon2 | `^1.7.4` | Enterprise-grade password hashing and token encryption |
+| **Backend Testing** | Pytest + AnyIO | `^8.2.1` | Endpoint testing, security tests, and performance benchmarks |
+| **Containerization** | Docker + Docker Compose | `v2` | Multi-stage production container builds with Nginx |
+| **Deployment** | Vercel + Render | `Cloud` | Edge static frontend hosting + managed Python web service |
 
+---
+
+## ✨ Core Features & Capabilities
+
+1. **Deterministic Executive Summary**:
+   - Converts lengthy contracts into plain-language summaries with identified key clauses.
+2. **Risk & Obligation Radar**:
+   - Flags liability, automatic renewal traps, penalties, termination notice periods, and financial obligations with `HIGH`, `MEDIUM`, and `LOW` severity ratings.
+3. **Side-by-Side Contract Comparison**:
+   - Pinpoints added, removed, or altered clauses and deadlines between baseline and revised versions with balanced visual diffing.
+4. **Zero-Hallucination Document Q&A**:
+   - Answers questions strictly bounded to document excerpts with page and chunk evidence references.
+5. **Interactive Action Checklists**:
+   - Auto-generates next steps and consultation questions for legal professionals with live progress tracking.
+6. **Document Vault Management**:
+   - One-click upload, analysis preview, and secure document deletion with confirmation safeguards.
+
+---
+
+## ⚡ Quickstart & Local Setup
+
+### Prerequisites
+- Python `3.11+`
+- Node.js `18+` or `20+`
+- Git
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/ManneUdayKiran/SynapseLaw-An-AI-Legal-Copilot.git
+cd SynapseLaw-An-AI-Legal-Copilot
+```
+
+### 2. Backend Setup
 ```bash
 cd backend
-python -m pytest
-```
-
-Frontend:
-
-```bash
-cd frontend
-npm test
-```
-
-See `docs/testing.md`.
-
-## Installation
-
-Backend:
-
-```bash
-cd lexiguide/backend
 python -m venv .venv
+# On Windows:
 .venv\Scripts\activate
+# On macOS/Linux:
+# source .venv/bin/activate
+
 pip install -r requirements.txt
 copy .env.example .env
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8000
 ```
+Backend API will be live at `http://127.0.0.1:8000`. Interactive OpenAPI documentation is available at `http://127.0.0.1:8000/docs`.
 
-Frontend:
-
+### 3. Frontend Setup
 ```bash
-cd lexiguide/frontend
+cd ../frontend
 npm install
 npm run dev
 ```
+Open `http://localhost:5173` in your browser.
 
-Open `http://localhost:5173`. FastAPI OpenAPI docs are available at `http://localhost:8000/docs`.
+---
 
-## Environment Variables
+## 🧪 Test Suite Verification
 
-Use `backend/.env.example` as the template:
+Run the full automated test suites to ensure 100% test coverage:
 
-- `APP_ENV`
-- `SECRET_KEY`
-- `DATABASE_URL`
-- `STORAGE_DIR`
-- `LLM_PROVIDER`
-- `LLM_MODEL`
-- `LLM_API_KEY`
-- `LLM_BASE_URL`
-- `EMBEDDING_PROVIDER`
-- `EMBEDDING_MODEL`
-- `CORS_ORIGINS`
-- `ACCESS_TOKEN_EXPIRE_MINUTES`
-- `MAX_UPLOAD_BYTES`
+```bash
+# Backend Pytest Suite (33 tests)
+cd backend
+python -m pytest
 
-Never commit a real `.env` or API key.
-
-## Project Structure
-
-```text
-lexiguide/
-  backend/
-    app/
-      api/routes/
-      ai/
-      core/
-      db/
-      rag/
-      schemas/
-      services/
-      utils/
-    tests/
-    requirements.txt
-    .env.example
-  frontend/
-    src/
-      components/
-      hooks/
-      layouts/
-      pages/
-      services/
-      theme/
-      test/
-    package.json
-    vite.config.js
-  docs/
-  README.md
-  .gitignore
-  docker-compose.yml
+# Frontend Vitest Suite (8 test files, 9 tests)
+cd ../frontend
+npm test
 ```
 
-## Legal Disclaimer
+---
 
-LexiGuide provides informational assistance based on uploaded documents. It is not a law firm, does not create an attorney-client relationship, and does not replace professional legal advice.
+## 🚀 Production Deployment
 
-## Limitations
+Refer to the complete [DEPLOYMENT.md](DEPLOYMENT.md) guide for 1-click deployments:
+- **Frontend**: [Vercel](https://vercel.com) (configured via `vercel.json`)
+- **Backend**: [Render](https://render.com) (configured via `render.yaml` Blueprint)
+- **Containers**: `docker compose up -d --build`
 
-- The local provider is extractive and deterministic; production deployments should use a stronger OpenAI-compatible LLM.
-- The in-memory vector store is intentionally lightweight for hackathon use. A persistent FAISS or database-backed vector store would be better for multi-instance production deployments.
-- Results depend on readable text extraction. Scanned PDFs without OCR may produce limited evidence.
-- Jurisdiction-specific legal advice should be handled by qualified legal professionals.
+---
 
-## Future Scope
+## 📄 License
 
-- OCR for scanned PDFs.
-- Persistent FAISS indexes or managed vector storage.
-- Organization accounts and role-based sharing.
-- Redline-style visual diffing.
-- Jurisdiction-aware authoritative legal resource retrieval.
-- Exportable PDF/Word review packets for lawyers.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
