@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.pytest_tmp/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+build/
+coverage/
+
+# Environment and secrets
+.env
+*.env.local
+
+# LexiGuide generated data
+lexiguide.db
+test_lexiguide.db
+.test-storage/
+.lexiguide_data/
+uploads/
+vector_indexes/
+*.sqlite
+*.sqlite3
+*.log
+
+# OS and IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

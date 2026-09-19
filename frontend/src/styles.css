@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --primary: #0b3b35;
+  --primary-light: #16564e;
+  --primary-gradient: linear-gradient(135deg, #0b3b35 0%, #17655b 100%);
+  --gold-accent: #d9822b;
+  --bg-default: #f4f6f3;
+  --card-border: rgba(11, 59, 53, 0.12);
+  --card-shadow: 0 4px 20px rgba(11, 59, 53, 0.06);
+  --card-shadow-hover: 0 12px 32px rgba(11, 59, 53, 0.12);
+  --transition-smooth: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  color: #0d1f1c;
+  background: var(--bg-default);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-default);
+  color: #0d1f1c;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Skip link accessibility */
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -70px;
+  z-index: 9999;
+  background: #0b3b35;
+  color: #ffffff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 16px;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
+  }
+}
+
+.fade-in {
+  animation: fadeInUp 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Custom modern scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eaeee9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b5c4bf;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8b9e98;
+}
