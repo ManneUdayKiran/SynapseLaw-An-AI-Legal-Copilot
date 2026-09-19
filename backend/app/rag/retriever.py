@@ -15,11 +15,20 @@ class InMemoryVectorStore:
         self.embedding_provider = HashingEmbeddingProvider()
         self._records: dict[str, list[tuple[Chunk, list[float]]]] = {}
 
-    def index(self, chunks: list[Chunk]) -> None:
+    def has_document(self, document_id: str) -> bool:
+        return document_id in self._records and len(self._records[document_id]) > 0
+
+    def get_document_chunks(self, document_id: str) -> list[Chunk]:
+        return [chunk for chunk, _ in self._records.get(document_id, [])]
+
+    def index(self, chunks: list[Chunk], force: bool = False) -> None:
         if not chunks:
             return
         document_id = chunks[0].document_id
-        self._records[document_id] = [(chunk, self.embedding_provider.embed(chunk.text)) for chunk in chunks]
+        if not force and self.has_document(document_id):
+            return
+        vectors = self.embedding_provider.embed_batch([chunk.text for chunk in chunks])
+        self._records[document_id] = list(zip(chunks, vectors))
 
     def search(self, document_id: str, query: str, top_k: int = 4) -> list[RetrievedChunk]:
         records = self._records.get(document_id, [])

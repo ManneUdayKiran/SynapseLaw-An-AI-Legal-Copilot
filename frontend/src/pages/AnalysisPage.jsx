@@ -38,13 +38,13 @@ export default function AnalysisPage() {
       `\n## Executive Summary`,
       analysis.summary || 'N/A',
       `\n## Key Clauses`,
-      ...(analysis.key_clauses || []).map(k => `- **${k.title}**: ${k.description}`),
+      ...(analysis.key_clauses || []).map(k => `- **${k.title}**: ${k.explanation || k.description}`),
       `\n## Identified Risks`,
-      ...(analysis.risks || []).map(r => `- [${(r.severity || 'Medium').toUpperCase()}] **${r.title}**: ${r.description}`),
+      ...(analysis.risks || []).map(r => `- [${(r.severity || 'Medium').toUpperCase()}] **${r.title}**: ${r.explanation || r.description}`),
       `\n## Obligations`,
-      ...(analysis.obligations || []).map(o => `- **${o.title}**: ${o.description}`),
+      ...(analysis.obligations || []).map(o => `- **${o.title}**: ${o.explanation || o.description}`),
       `\n## Action Items`,
-      ...(analysis.action_items || []).map(a => `- [ ] **${a.title}**: ${a.description}`),
+      ...(analysis.action_items || []).map(a => `- [ ] **${a.title}**: ${a.explanation || a.description}`),
       `\n---\n*Disclaimer: ${analysis.disclaimer || 'Informational AI assistance only.'}*`
     ];
     const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8;' });
@@ -90,7 +90,7 @@ export default function AnalysisPage() {
         AI analysis is separated from extracted source citations so you can verify each risk and obligation with proof.
       </PageHeader>
 
-      {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 3 }} role="alert">{error}</Alert>}
 
       {!analysis ? (
         <Box sx={{ display: 'grid', gap: 2 }}>
@@ -99,6 +99,55 @@ export default function AnalysisPage() {
         </Box>
       ) : (
         <Box>
+          {analysis.metrics && (
+            <Box
+              sx={{
+                mb: 2.5,
+                p: 1.5,
+                px: 2.5,
+                bgcolor: 'rgba(11, 59, 53, 0.04)',
+                borderRadius: 2.5,
+                border: '1px solid rgba(11, 59, 53, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                flexWrap: 'wrap',
+              }}
+              role="region"
+              aria-label="Performance Telemetry"
+            >
+              <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Runtime Performance:
+              </Typography>
+              <Chip
+                label={`Execution: ${analysis.metrics.total_response_ms ?? 0}ms`}
+                size="small"
+                variant="outlined"
+                sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+              />
+              <Chip
+                label={`Excerpts Analyzed: ${analysis.metrics.retrieved_chunks_count ?? 0}`}
+                size="small"
+                variant="outlined"
+                sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+              />
+              <Chip
+                label={`Context Scanned: ${analysis.metrics.context_size_chars ?? 0} chars`}
+                size="small"
+                variant="outlined"
+                sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+              />
+              {analysis.metrics.cache_hit && (
+                <Chip
+                  label="Cached Analysis"
+                  size="small"
+                  color="success"
+                  sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+                />
+              )}
+            </Box>
+          )}
+
           <Box sx={{ bgcolor: '#ffffff', p: 0.8, borderRadius: 3, border: '1px solid rgba(11, 59, 53, 0.1)', mb: 3.5, boxShadow: '0 4px 14px rgba(11, 59, 53, 0.04)' }}>
             <Tabs
               value={tab}
@@ -128,12 +177,22 @@ export default function AnalysisPage() {
               }}
             >
               {sections.map(([value, label]) => (
-                <Tab key={value} label={label} value={value} />
+                <Tab
+                  key={value}
+                  id={`analysis-tab-${value}`}
+                  aria-controls={`analysis-tabpanel-${value}`}
+                  label={label}
+                  value={value}
+                />
               ))}
             </Tabs>
           </Box>
 
-          <Box>
+          <Box
+            role="tabpanel"
+            id={`analysis-tabpanel-${tab}`}
+            aria-labelledby={`analysis-tab-${tab}`}
+          >
             {tab === 'summary' ? (
               <Card sx={{ bgcolor: '#ffffff', borderRadius: 3, border: '1px solid rgba(11, 59, 53, 0.12)', boxShadow: '0 8px 30px rgba(11, 59, 53, 0.05)' }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
@@ -163,12 +222,12 @@ export default function AnalysisPage() {
               <Grid container spacing={2.5}>
                 {(analysis[tab] || []).length ? (
                   analysis[tab].map((finding, index) => (
-                    <Grid item xs={12} md={6} key={`${finding.title}-${index}`}>
+                    <Grid size={{ xs: 12, md: 6 }} key={`${finding.title}-${index}`}>
                       <FindingCard finding={finding} />
                     </Grid>
                   ))
                 ) : (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Card sx={{ p: 4, textAlign: 'center', bgcolor: '#ffffff' }}>
                       <Typography color="text.secondary">
                         No evidence-backed items were detected for this section.

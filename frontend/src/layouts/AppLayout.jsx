@@ -1,6 +1,9 @@
-import { AddCircle, AutoAwesome, Balance, CompareArrows, Dashboard, Gavel, HelpOutline, Shield, Tune } from '@mui/icons-material';
-import { AppBar, Box, Button, Chip, Container, Divider, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography } from '@mui/material';
+import { useState } from 'react';
+import { AddCircle, AutoAwesome, Balance, CompareArrows, Dashboard, Gavel, HelpOutline, Shield, Tune, AccountCircle, Close } from '@mui/icons-material';
+import { AppBar, Box, Button, Chip, Container, Divider, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Tabs, Tab, Alert, IconButton } from '@mui/material';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth.jsx';
+import { apiError } from '../services/api.js';
 
 const nav = [
   ['Dashboard', '/dashboard', <Dashboard aria-hidden key="dashboard" />],
@@ -13,9 +16,55 @@ const nav = [
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, login, register, logout } = useAuth();
+
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authTab, setAuthTab] = useState('login');
+  const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [liveAnnouncement, setLiveAnnouncement] = useState('');
+
+  const isGuest = !user || user.email === 'guest@lexiguide.com';
+
+  async function handleAuthSubmit(e) {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    try {
+      if (authTab === 'login') {
+        await login(email, password);
+        setLiveAnnouncement('Successfully signed in.');
+      } else {
+        await register({ email, full_name: fullName, password });
+        setLiveAnnouncement('Registration successful and logged in.');
+      }
+      setAuthOpen(false);
+      setEmail('');
+      setPassword('');
+      setFullName('');
+    } catch (err) {
+      setAuthError(apiError(err));
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  function handleLogout() {
+    logout();
+    setLiveAnnouncement('Logged out. Switched to guest session.');
+    setAuthOpen(false);
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'background.default' }}>
+      {/* Global accessible live region for screen readers */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {liveAnnouncement}
+      </div>
+
       <AppBar
         position="fixed"
         color="inherit"
@@ -92,6 +141,16 @@ export default function AppLayout() {
               }}
             />
             <Button
+              startIcon={<AccountCircle />}
+              variant="outlined"
+              size="medium"
+              onClick={() => setAuthOpen(true)}
+              sx={{ fontWeight: 700, borderColor: 'rgba(11, 59, 53, 0.2)' }}
+              aria-label={isGuest ? 'Sign in or register' : `Signed in as ${user?.full_name}`}
+            >
+              {isGuest ? 'Sign In' : (user?.full_name?.split(' ')[0] || 'Account')}
+            </Button>
+            <Button
               startIcon={<AddCircle />}
               variant="contained"
               size="medium"
@@ -103,6 +162,112 @@ export default function AppLayout() {
           </Box>
         </Toolbar>
       </AppBar>
+
+      {/* Accessible Authentication Dialog */}
+      <Dialog
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        aria-labelledby="auth-dialog-title"
+      >
+        <DialogTitle id="auth-dialog-title" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+          <Typography variant="h6" component="span" sx={{ fontWeight: 800, color: 'primary.main' }}>
+            {isGuest ? (authTab === 'login' ? 'Sign In to SynapseLaw' : 'Create Account') : 'Your Account Profile'}
+          </Typography>
+          <IconButton aria-label="Close dialog" onClick={() => setAuthOpen(false)} size="small">
+            <Close fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers sx={{ p: 3 }}>
+          {authError && <Alert severity="error" sx={{ mb: 2 }} role="alert">{authError}</Alert>}
+
+          {isGuest ? (
+            <Box component="form" onSubmit={handleAuthSubmit} id="auth-form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Tabs
+                value={authTab}
+                onChange={(_, v) => { setAuthTab(v); setAuthError(''); }}
+                aria-label="Authentication mode"
+                sx={{ mb: 1 }}
+              >
+                <Tab label="Sign In" value="login" id="auth-tab-login" aria-controls="auth-panel-login" sx={{ fontWeight: 700 }} />
+                <Tab label="Register" value="register" id="auth-tab-register" aria-controls="auth-panel-register" sx={{ fontWeight: 700 }} />
+              </Tabs>
+
+              {authTab === 'register' && (
+                <TextField
+                  required
+                  id="auth-fullname"
+                  label="Full Name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              )}
+
+              <TextField
+                required
+                id="auth-email"
+                type="email"
+                label="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                fullWidth
+                size="small"
+              />
+
+              <TextField
+                required
+                id="auth-password"
+                type="password"
+                label="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                fullWidth
+                size="small"
+              />
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, py: 1 }}>
+              <Box sx={{ p: 2, bgcolor: 'rgba(11, 59, 53, 0.04)', borderRadius: 2 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>SIGNED IN AS</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 800, color: 'primary.main' }}>{user?.full_name}</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{user?.email}</Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary">
+                You are currently authenticated. Uploaded documents are saved under your private user workspace.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          {isGuest ? (
+            <Button
+              type="submit"
+              form="auth-form"
+              variant="contained"
+              disabled={authLoading}
+              fullWidth
+              sx={{ fontWeight: 700, py: 1 }}
+            >
+              {authLoading ? 'Processing...' : (authTab === 'login' ? 'Sign In' : 'Create Account')}
+            </Button>
+          ) : (
+            <Button
+              onClick={handleLogout}
+              variant="outlined"
+              color="error"
+              fullWidth
+              sx={{ fontWeight: 700 }}
+            >
+              Sign Out (Switch to Guest)
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
 
       <Drawer
         variant="permanent"

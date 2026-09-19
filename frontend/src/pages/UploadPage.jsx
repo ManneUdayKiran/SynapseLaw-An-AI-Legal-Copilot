@@ -28,7 +28,7 @@ export default function UploadPage() {
       />
 
       <Grid container spacing={2.5} sx={{ maxWidth: 840, mx: 'auto', mt: 4 }}>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ height: '100%', bgcolor: '#ffffff', p: 1, border: '1px solid rgba(11, 59, 53, 0.08)' }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', mb: 1 }}>
@@ -42,7 +42,7 @@ export default function UploadPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ height: '100%', bgcolor: '#ffffff', p: 1, border: '1px solid rgba(11, 59, 53, 0.08)' }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', mb: 1 }}>
@@ -56,7 +56,7 @@ export default function UploadPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ height: '100%', bgcolor: '#ffffff', p: 1, border: '1px solid rgba(11, 59, 53, 0.08)' }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'secondary.dark', mb: 1 }}>

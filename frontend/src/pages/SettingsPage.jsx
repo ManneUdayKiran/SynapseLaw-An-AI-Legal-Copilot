@@ -16,7 +16,7 @@ export default function SettingsPage() {
       </PageHeader>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%', bgcolor: '#ffffff', p: 1, border: '1px solid rgba(11, 59, 53, 0.12)', borderRadius: 3 }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
@@ -41,7 +41,7 @@ export default function SettingsPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%', bgcolor: '#ffffff', p: 1, border: '1px solid rgba(11, 59, 53, 0.12)', borderRadius: 3 }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>

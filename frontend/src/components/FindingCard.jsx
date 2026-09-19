@@ -39,6 +39,7 @@ export default function FindingCard({ finding }) {
               <Chip
                 label={`${finding.severity} RISK`}
                 size="small"
+                aria-label={`Severity classification: ${finding.severity} RISK`}
                 sx={{
                   fontWeight: 800,
                   fontSize: '0.68rem',

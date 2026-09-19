@@ -35,6 +35,8 @@ def client(tmp_path):
     TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     Base.metadata.create_all(bind=engine)
     vector_store._records.clear()
+    from app.main import _rate_bucket
+    _rate_bucket.clear()
 
     def override_get_db():
         db = TestingSessionLocal()

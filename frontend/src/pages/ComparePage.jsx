@@ -77,13 +77,13 @@ export default function ComparePage() {
 
       <Card sx={{ p: 3, mb: 4, bgcolor: '#ffffff', border: '1px solid rgba(11, 59, 53, 0.12)', borderRadius: 3 }}>
         <Grid container spacing={2.5} alignItems="center">
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <DocumentSelect label="Document A (Baseline)" documents={documents} value={a} onChange={setA} />
           </Grid>
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <DocumentSelect label="Document B (Revised / Comparison)" documents={documents} value={b} onChange={setB} />
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid size={{ xs: 12, md: 2 }}>
             <Button
               fullWidth
               variant="contained"
@@ -110,7 +110,7 @@ export default function ComparePage() {
       )}
 
       {result && (
-        <Box sx={{ mt: 2 }}>
+        <Box sx={{ mt: 2 }} role="region" aria-label="Comparison Results" aria-live="polite">
           <Card sx={{ p: 3, mb: 3.5, bgcolor: 'rgba(11, 59, 53, 0.04)', border: '1px solid rgba(11, 59, 53, 0.12)', borderRadius: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1, flexWrap: 'wrap' }}>
               <DifferenceOutlined color="primary" />
@@ -136,7 +136,7 @@ export default function ComparePage() {
 
           <Grid container spacing={2.5}>
             {result.changes.map((change, index) => (
-              <Grid item xs={12} md={6} key={`${change.category}-${index}`}>
+              <Grid size={{ xs: 12, md: 6 }} key={`${change.category}-${index}`}>
                 <Card
                   sx={{
                     height: '100%',

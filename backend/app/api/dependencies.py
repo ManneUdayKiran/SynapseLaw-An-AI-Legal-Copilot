@@ -22,14 +22,24 @@ def get_current_user(
 ) -> User:
     if credentials is not None:
         subject = decode_access_token(credentials.credentials)
-        if subject is not None:
-            user = db.get(User, subject)
-            if user is not None:
-                if user.email.endswith(".local"):
-                    user.email = user.email.replace(".local", ".com")
-                    db.commit()
-                    db.refresh(user)
-                return user
+        if subject is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired authentication token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        user = db.get(User, subject)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if user.email.endswith(".local"):
+            user.email = user.email.replace(".local", ".com")
+            db.commit()
+            db.refresh(user)
+        return user
 
     # Auto-get or create persistent guest user for direct unauthenticated access
     guest = db.get(User, DEFAULT_GUEST_ID)
@@ -53,3 +63,18 @@ def get_current_user(
         db.commit()
         db.refresh(guest)
     return guest
+
+
+def get_required_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> User:
+    """Strict authentication dependency: requires a valid JWT token; does not fall back to guest."""
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return get_current_user(credentials=credentials, db=db)
+

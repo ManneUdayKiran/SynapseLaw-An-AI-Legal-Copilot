@@ -22,6 +22,16 @@ class Finding(BaseModel):
     suggested_action: str | None = None
 
 
+class PerformanceMetrics(BaseModel):
+    document_processing_ms: float | None = None
+    retrieval_ms: float | None = None
+    llm_generation_ms: float | None = None
+    total_response_ms: float | None = None
+    retrieved_chunks_count: int | None = None
+    context_size_chars: int | None = None
+    cache_hit: bool | None = None
+
+
 class AnalysisResult(BaseModel):
     summary: str
     key_clauses: list[Finding] = Field(default_factory=list)
@@ -31,6 +41,7 @@ class AnalysisResult(BaseModel):
     action_items: list[Finding] = Field(default_factory=list)
     lawyer_questions: list[Finding] = Field(default_factory=list)
     disclaimer: str = "LexiGuide provides informational assistance and does not replace professional legal advice."
+    metrics: PerformanceMetrics | None = None
 
 
 class AskRequest(BaseModel):
@@ -42,6 +53,7 @@ class AskResponse(BaseModel):
     evidence: list[SourceRef] = Field(default_factory=list)
     confidence: Literal["LOW", "MEDIUM", "HIGH"] = "LOW"
     disclaimer: str = "LexiGuide provides informational assistance and does not replace professional legal advice."
+    metrics: PerformanceMetrics | None = None
 
 
 class CompareRequest(BaseModel):

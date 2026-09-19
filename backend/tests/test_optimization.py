@@ -51,3 +51,58 @@ def test_chunking_with_sections_and_pages():
     assert len(chunks) >= 2
     assert chunks[0].document_id == "doc123"
     assert chunks[0].page_number is not None
+
+
+def test_batch_embedding_consistency():
+    provider = HashingEmbeddingProvider(dimensions=256)
+    texts = [
+        "First clause of the non-disclosure agreement.",
+        "Second clause specifying liquidated damages of $10,000.",
+    ]
+    batch_vecs = provider.embed_batch(texts)
+    assert len(batch_vecs) == 2
+    for text, vec in zip(texts, batch_vecs):
+        assert vec == provider.embed(text)
+
+
+def test_vector_store_avoids_redundant_reindexing():
+    from app.rag.retriever import InMemoryVectorStore
+    store = InMemoryVectorStore()
+    doc_id = "dedup-test-doc"
+    chunks = chunk_text(doc_id, "Clause 1: Confidential Information means all proprietary data.")
+    store.index(chunks)
+    assert store.has_document(doc_id) is True
+
+    # Mutate internally to verify subsequent index call does not overwrite without force
+    store._records[doc_id] = [("mocked_record", [0.0] * 256)]
+    store.index(chunks, force=False)
+    assert store._records[doc_id] == [("mocked_record", [0.0] * 256)]
+
+    # With force=True, it should re-index
+    store.index(chunks, force=True)
+    assert store._records[doc_id] != [("mocked_record", [0.0] * 256)]
+
+
+def test_performance_telemetry_in_ask_endpoint(client, auth_headers):
+    res = client.post(
+        "/api/documents/upload",
+        headers=auth_headers,
+        files={"file": ("telemetry_test.txt", b"Rent is $2500 due on the first of each month.", "text/plain")},
+    )
+    doc_id = res.json()["id"]
+
+    ask_res = client.post(
+        f"/api/documents/{doc_id}/ask",
+        headers=auth_headers,
+        json={"question": "What is the monthly rent amount?"},
+    )
+    assert ask_res.status_code == 200
+    data = ask_res.json()
+    assert "metrics" in data
+    metrics = data["metrics"]
+    assert metrics is not None
+    assert "retrieval_ms" in metrics
+    assert "total_response_ms" in metrics
+    assert isinstance(metrics["total_response_ms"], (int, float))
+    assert metrics["total_response_ms"] >= 0.0
+

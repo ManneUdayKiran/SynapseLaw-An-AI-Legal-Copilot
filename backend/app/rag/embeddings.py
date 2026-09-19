@@ -32,6 +32,14 @@ class HashingEmbeddingProvider:
     def embed(self, text: str) -> list[float]:
         return list(_compute_embedding(text, self.dimensions))
 
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        return [list(_compute_embedding(text, self.dimensions)) for text in texts]
+
+    @staticmethod
+    def cache_stats() -> dict[str, int]:
+        info = _compute_embedding.cache_info()
+        return {"hits": info.hits, "misses": info.misses, "size": info.currsize}
+
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:
     return sum(x * y for x, y in zip(a, b))

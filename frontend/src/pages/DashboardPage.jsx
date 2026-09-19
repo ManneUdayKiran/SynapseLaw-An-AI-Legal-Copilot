@@ -52,7 +52,7 @@ export default function DashboardPage() {
 
       {/* Quick Metrics Bar with 4 equal-share cards */}
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ height: '100%', bgcolor: '#ffffff', p: 1 }}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, '&:last-child': { pb: 1.5 } }}>
               <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(11, 59, 53, 0.08)', color: 'primary.main' }}>
@@ -70,7 +70,7 @@ export default function DashboardPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ height: '100%', bgcolor: '#ffffff', p: 1 }}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, '&:last-child': { pb: 1.5 } }}>
               <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(217, 130, 43, 0.1)', color: 'secondary.main' }}>
@@ -88,7 +88,7 @@ export default function DashboardPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ height: '100%', bgcolor: '#ffffff', p: 1 }}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, '&:last-child': { pb: 1.5 } }}>
               <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(14, 112, 84, 0.08)', color: 'success.main' }}>
@@ -106,7 +106,7 @@ export default function DashboardPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ height: '100%', bgcolor: '#ffffff', p: 1 }}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, '&:last-child': { pb: 1.5 } }}>
               <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: 'rgba(11, 59, 53, 0.08)', color: 'primary.main' }}>
@@ -117,7 +117,7 @@ export default function DashboardPage() {
                   Isolated
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                  Guest Storage Privacy
+                  Vault Storage Privacy
                 </Typography>
               </Box>
             </CardContent>
@@ -152,7 +152,7 @@ export default function DashboardPage() {
       {loading ? (
         <Grid container spacing={2.5}>
           {[1, 2, 3].map((i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
               <Skeleton variant="rounded" height={190} sx={{ borderRadius: 3 }} />
             </Grid>
           ))}
@@ -164,7 +164,7 @@ export default function DashboardPage() {
           </Typography>
           <Grid container spacing={2.5}>
             {documents.map((document) => (
-              <Grid item xs={12} sm={6} md={4} key={document.id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={document.id}>
                 <DocumentCard document={document} onDelete={handleDelete} />
               </Grid>
             ))}

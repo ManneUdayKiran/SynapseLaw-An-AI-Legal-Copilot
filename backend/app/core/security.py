@@ -35,3 +35,33 @@ def decode_access_token(token: str) -> str | None:
         return str(subject) if subject else None
     except JWTError:
         return None
+
+
+PROMPT_INJECTION_PATTERNS = [
+    r"ignore\s+(?:all\s+)?(?:previous|prior)\s+instructions",
+    r"disregard\s+(?:all\s+)?(?:previous|prior|system)\s+instructions",
+    r"reveal\s+(?:the\s+)?(?:system\s+prompt|secret|api\s*key|password)",
+    r"output\s+(?:the\s+)?(?:system\s+prompt|environment\s+variables)",
+    r"you\s+are\s+now\s+(?:in\s+developer\s+mode|an\s+unrestricted|dan)",
+    r"override\s+(?:system\s+)?instructions",
+    r"bypass\s+(?:all\s+)?security\s+guardrails",
+]
+
+
+def detect_prompt_injection(text: str) -> bool:
+    """Detect common adversarial prompt injection patterns designed to hijack LLM instructions."""
+    import re
+    lowered = text.lower()
+    for pattern in PROMPT_INJECTION_PATTERNS:
+        if re.search(pattern, lowered):
+            return True
+    return False
+
+
+def sanitize_untrusted_text(text: str) -> str:
+    """Sanitize untrusted text by neutralizing injection delimiters and control sequences."""
+    text = text.replace("\x00", "")
+    text = text.replace("<untrusted_document_evidence>", "&lt;untrusted_document_evidence&gt;")
+    text = text.replace("</untrusted_document_evidence>", "&lt;/untrusted_document_evidence&gt;")
+    return text.strip()
+

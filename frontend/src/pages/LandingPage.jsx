@@ -27,7 +27,7 @@ export default function LandingPage() {
       >
         <Container maxWidth="lg">
           <Grid container spacing={5} alignItems="center">
-            <Grid item xs={12} md={7}>
+            <Grid size={{ xs: 12, md: 7 }}>
               <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, px: 1.8, py: 0.8, bgcolor: 'rgba(11, 59, 53, 0.08)', borderRadius: 4, mb: 2.5, border: '1px solid rgba(11, 59, 53, 0.15)' }}>
                 <AutoAwesome sx={{ fontSize: 16, color: 'primary.main' }} />
                 <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -92,7 +92,7 @@ export default function LandingPage() {
               </Box>
             </Grid>
 
-            <Grid item xs={12} md={5}>
+            <Grid size={{ xs: 12, md: 5 }}>
               <Box
                 sx={{
                   bgcolor: '#ffffff',
@@ -150,7 +150,7 @@ export default function LandingPage() {
 
         <Grid container spacing={4} alignItems="stretch">
           {/* Left Side: Illustrative AI Showcase Graphic Card */}
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <Card
               sx={{
                 height: '100%',
@@ -274,10 +274,10 @@ export default function LandingPage() {
           </Grid>
 
           {/* Right Side: 2x2 Core Capabilities Cards */}
-          <Grid item xs={12} md={7}>
+          <Grid size={{ xs: 12, md: 7 }}>
             <Grid container spacing={2.5} sx={{ height: '100%' }}>
               {features.map(([title, icon, text]) => (
-                <Grid item xs={12} sm={6} key={title} sx={{ display: 'flex' }}>
+                <Grid size={{ xs: 12, sm: 6 }} key={title} sx={{ display: 'flex' }}>
                   <Card
                     sx={{
                       width: '100%',
