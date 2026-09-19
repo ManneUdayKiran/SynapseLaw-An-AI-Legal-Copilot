@@ -1,4 +1,4 @@
-import { AutoAwesome, HelpOutline, InfoOutlined, ShieldOutlined } from '@mui/icons-material';
+import { AutoAwesome, FileDownload, HelpOutline, InfoOutlined, ShieldOutlined } from '@mui/icons-material';
 import { Alert, Box, Button, Card, CardContent, Chip, Grid, Skeleton, Tab, Tabs, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -29,20 +29,62 @@ export default function AnalysisPage() {
       .catch((err) => setError(apiError(err)));
   }, [documentId]);
 
+  const handleExportReport = () => {
+    if (!analysis) return;
+    const lines = [
+      `# SynapseLaw AI Legal Analysis Report`,
+      `Document ID: ${documentId}`,
+      `Generated on: ${new Date().toLocaleString()}`,
+      `\n## Executive Summary`,
+      analysis.summary || 'N/A',
+      `\n## Key Clauses`,
+      ...(analysis.key_clauses || []).map(k => `- **${k.title}**: ${k.description}`),
+      `\n## Identified Risks`,
+      ...(analysis.risks || []).map(r => `- [${(r.severity || 'Medium').toUpperCase()}] **${r.title}**: ${r.description}`),
+      `\n## Obligations`,
+      ...(analysis.obligations || []).map(o => `- **${o.title}**: ${o.description}`),
+      `\n## Action Items`,
+      ...(analysis.action_items || []).map(a => `- [ ] **${a.title}**: ${a.description}`),
+      `\n---\n*Disclaimer: ${analysis.disclaimer || 'Informational AI assistance only.'}*`
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `SynapseLaw_Analysis_${documentId.slice(0, 8)}.md`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Box className="fade-in">
       <PageHeader
         eyebrow="Evidence-Backed Review"
         title="Comprehensive Document Analysis"
         action={
-          <Button
-            variant="contained"
-            startIcon={<HelpOutline />}
-            onClick={() => navigate('/ask')}
-            sx={{ fontWeight: 700 }}
-          >
-            Ask Questions About This Doc
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              startIcon={<FileDownload />}
+              onClick={handleExportReport}
+              disabled={!analysis}
+              sx={{ fontWeight: 700 }}
+              aria-label="Export legal analysis report as Markdown"
+            >
+              Export Report
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<HelpOutline />}
+              onClick={() => navigate('/ask')}
+              sx={{ fontWeight: 700 }}
+              aria-label="Ask questions about this document"
+            >
+              Ask Questions About This Doc
+            </Button>
+          </Box>
         }
       >
         AI analysis is separated from extracted source citations so you can verify each risk and obligation with proof.

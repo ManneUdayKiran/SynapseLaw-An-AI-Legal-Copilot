@@ -36,6 +36,34 @@ export default function ComparePage() {
     }
   }
 
+  const handleExportComparison = () => {
+    if (!result) return;
+    const lines = [
+      `# SynapseLaw Contract Version Comparison Report`,
+      `Baseline Document: ${documents.find(d => d.id === a)?.filename || a}`,
+      `Comparison Document: ${documents.find(d => d.id === b)?.filename || b}`,
+      `Generated on: ${new Date().toLocaleString()}`,
+      `\n## Overall Summary`,
+      result.summary,
+      `\n## Detected Differences (${result.changes.length})`,
+      ...result.changes.map((c, i) => [
+        `\n### ${i + 1}. Clause Category: ${c.category}`,
+        `**Document A:** ${c.document_a}`,
+        `**Document B:** ${c.document_b}`,
+        `**Legal Impact / Analysis:** ${c.change}`
+      ].join('\n'))
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `SynapseLaw_Comparison_${Date.now()}.md`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Box className="fade-in">
       <PageHeader
@@ -64,6 +92,7 @@ export default function ComparePage() {
               onClick={compare}
               startIcon={<CompareArrows />}
               sx={{ py: 1.5, fontWeight: 700 }}
+              aria-label="Compare selected documents"
             >
               Compare
             </Button>
@@ -72,7 +101,7 @@ export default function ComparePage() {
       </Card>
 
       {loading && (
-        <Box sx={{ p: 4, bgcolor: '#ffffff', borderRadius: 3, textAlign: 'center', mb: 3 }}>
+        <Box sx={{ p: 4, bgcolor: '#ffffff', borderRadius: 3, textAlign: 'center', mb: 3 }} role="status" aria-live="polite">
           <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
             Analyzing clause differences and semantic shifts...
           </Typography>
@@ -83,17 +112,27 @@ export default function ComparePage() {
       {result && (
         <Box sx={{ mt: 2 }}>
           <Card sx={{ p: 3, mb: 3.5, bgcolor: 'rgba(11, 59, 53, 0.04)', border: '1px solid rgba(11, 59, 53, 0.12)', borderRadius: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1, flexWrap: 'wrap' }}>
               <DifferenceOutlined color="primary" />
               <Typography variant="h5" component="h2" sx={{ fontWeight: 800, color: 'primary.main' }}>
                 Comparison Summary
               </Typography>
-              <Chip label={`${result.changes.length} Differences Flagged`} color="secondary" size="small" sx={{ ml: 'auto', fontWeight: 700 }} />
+              <Chip label={`${result.changes.length} Differences Flagged`} color="secondary" size="small" sx={{ ml: { xs: 0, sm: 'auto' }, fontWeight: 700 }} />
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleExportComparison}
+                sx={{ ml: { xs: 0, sm: 1.5 }, fontWeight: 700 }}
+                aria-label="Export comparison findings as Markdown report"
+              >
+                Export Diff Report
+              </Button>
             </Box>
             <Typography sx={{ color: 'text.secondary', fontSize: '0.95rem' }}>
               {result.summary}
             </Typography>
           </Card>
+
 
           <Grid container spacing={2.5}>
             {result.changes.map((change, index) => (

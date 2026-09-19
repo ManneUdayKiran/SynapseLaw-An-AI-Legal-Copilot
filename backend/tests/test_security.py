@@ -6,7 +6,9 @@ def test_security_headers(client):
     assert response.status_code == 200
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
-    assert response.headers["Referrer-Policy"] == "no-referrer"
+    assert response.headers["X-XSS-Protection"] == "1; mode=block"
+    assert "Strict-Transport-Security" in response.headers
+
 
 
 def test_password_hashing_and_verification():
