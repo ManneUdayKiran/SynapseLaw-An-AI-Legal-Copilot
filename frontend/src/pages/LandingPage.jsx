@@ -217,56 +217,45 @@ export default function LandingPage() {
                   />
                 </Box>
 
-                {/* Hero Illustration Image */}
+                {/* Dynamic Legal AI Telemetry Box */}
                 <Box
                   sx={{
                     width: '100%',
-                    aspectRatio: '1 / 1',
-                    maxHeight: 320,
+                    p: 2.5,
                     borderRadius: 3,
-                    overflow: 'hidden',
                     border: '1px solid rgba(255, 255, 255, 0.12)',
                     boxShadow: '0 12px 30px rgba(0, 0, 0, 0.35)',
                     mb: 2.5,
                     position: 'relative',
-                    bgcolor: '#041714'
+                    bgcolor: '#041714',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1.8
                   }}
                 >
-                  <Box
-                    component="img"
-                    src="/legal_ai_showcase.jpg"
-                    alt="SynapseLaw Precision Analysis Engine"
-                    sx={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      transition: 'transform 0.4s ease',
-                      '&:hover': {
-                        transform: 'scale(1.03)'
-                      }
-                    }}
-                  />
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      bottom: 12,
-                      left: 12,
-                      right: 12,
-                      bgcolor: 'rgba(8, 40, 35, 0.85)',
-                      backdropFilter: 'blur(8px)',
-                      borderRadius: 2,
-                      p: 1.2,
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#ffffff', fontSize: '0.76rem' }}>
-                      ⚡ 100% Deterministic Extraction
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Context Stream
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#f59e0b', fontWeight: 800, fontSize: '0.72rem' }}>
-                      256-D Chunks
+                    <Chip label="Real-time RAG" size="small" sx={{ height: 22, fontSize: '0.68rem', bgcolor: 'rgba(52, 211, 153, 0.15)', color: '#34d399', fontWeight: 700 }} />
+                  </Box>
+
+                  <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                    <Typography variant="caption" sx={{ color: '#f59e0b', fontWeight: 800, display: 'block', mb: 0.5 }}>
+                      § 14.2 Indemnity & Liability Cap
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.78rem', lineHeight: 1.4, display: 'block' }}>
+                      &ldquo;Supplier total liability shall not exceed the fees paid in preceding 3 months...&rdquo;
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 0.5 }}>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Chip label="High Risk Flagged" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontWeight: 800 }} />
+                      <Chip label="Cosine: 0.94" size="small" sx={{ height: 20, fontSize: '0.65rem', bgcolor: 'rgba(255, 255, 255, 0.08)', color: '#94a3b8', fontWeight: 700 }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 800, fontSize: '0.72rem' }}>
+                      Verified Citation
                     </Typography>
                   </Box>
                 </Box>
