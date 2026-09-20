@@ -58,9 +58,34 @@ class LocalExtractiveProvider(AIProvider):
         findings: list[Finding] = []
         obligations: list[Finding] = []
         risks: list[Finding] = []
+        inconsistencies: list[Finding] = []
         dates: list[Finding] = []
         actions: list[Finding] = []
         lawyer_questions: list[Finding] = []
+
+        # Inconsistency Detection: Check for conflicting notice periods and contradictory remedies
+        notice_days = re.findall(r"\b(\d{1,3})\s+(?:business\s+)?days?\s+notice\b", text, re.I)
+        if len(set(notice_days)) > 1:
+            unique_periods = ", ".join(f"{d} days" for d in sorted(set(notice_days), key=int))
+            inconsistencies.append(
+                Finding(
+                    title="Conflicting notice periods",
+                    explanation=f"The document references multiple conflicting notice periods: {unique_periods}. Clarify which deadline governs.",
+                    severity="HIGH",
+                    source=_source(excerpts[0]) if excerpts else None,
+                    suggested_action="Request explicit clarification from the counterparty on which notice period applies.",
+                )
+            )
+        if "sole and exclusive remedy" in text.lower() and "cumulative" in text.lower():
+            inconsistencies.append(
+                Finding(
+                    title="Contradictory legal remedies",
+                    explanation="The document contains clauses referencing both 'sole and exclusive remedy' and 'cumulative' remedies.",
+                    severity="HIGH",
+                    source=_source(excerpts[0]) if excerpts else None,
+                    suggested_action="Consult legal counsel to resolve the contradiction between exclusive and cumulative remedies.",
+                )
+            )
 
         for excerpt in excerpts:
             excerpt_text = sanitize_untrusted_text(str(excerpt.get("text", "")))
@@ -79,7 +104,7 @@ class LocalExtractiveProvider(AIProvider):
             if any(term in lower for term in ["termination", "payment", "confidential", "renewal", "liability"]):
                 findings.append(Finding(title=_title_from_text(excerpt_text), explanation=_first_sentence(excerpt_text), severity=None, source=source))
 
-        for item in (obligations + risks + dates)[:6]:
+        for item in (obligations + risks + dates + inconsistencies)[:6]:
             actions.append(Finding(title=f"Review {item.title.lower()}", explanation=item.suggested_action or item.explanation, severity=item.severity, source=item.source))
             lawyer_questions.append(Finding(title=f"Question about {item.title.lower()}", explanation=f"Discuss this with a legal professional: {item.explanation}", severity=item.severity, source=item.source))
 
@@ -88,6 +113,7 @@ class LocalExtractiveProvider(AIProvider):
             key_clauses=findings[:8],
             obligations=obligations[:8],
             risks=risks[:8],
+            inconsistencies=inconsistencies[:8],
             important_dates=dates[:8],
             action_items=actions[:8],
             lawyer_questions=lawyer_questions[:8],
@@ -170,6 +196,7 @@ class OpenAICompatibleProvider(LocalExtractiveProvider):
             '  "key_clauses": [{"title": "Clause Title", "explanation": "Explanation", "severity": null}],\n'
             '  "obligations": [{"title": "Obligation Title", "explanation": "Explanation", "severity": "MEDIUM", "suggested_action": "Action"}],\n'
             '  "risks": [{"title": "Risk Title", "explanation": "Explanation", "severity": "HIGH", "suggested_action": "Action"}],\n'
+            '  "inconsistencies": [{"title": "Inconsistency Title", "explanation": "Contradiction found", "severity": "HIGH", "suggested_action": "Action"}],\n'
             '  "important_dates": [{"title": "Date/Period", "explanation": "Reference"}],\n'
             '  "action_items": [{"title": "Action Item", "explanation": "Explanation", "severity": "MEDIUM"}],\n'
             '  "lawyer_questions": [{"title": "Question Title", "explanation": "Question to ask"}]\n'
@@ -315,6 +342,7 @@ class GoogleGeminiProvider(LocalExtractiveProvider):
             '  "key_clauses": [{"title": "Clause Title", "explanation": "Explanation", "severity": null}],\n'
             '  "obligations": [{"title": "Obligation Title", "explanation": "Explanation", "severity": "MEDIUM", "suggested_action": "Action"}],\n'
             '  "risks": [{"title": "Risk Title", "explanation": "Explanation", "severity": "HIGH", "suggested_action": "Action"}],\n'
+            '  "inconsistencies": [{"title": "Inconsistency Title", "explanation": "Contradiction found", "severity": "HIGH", "suggested_action": "Action"}],\n'
             '  "important_dates": [{"title": "Date/Period", "explanation": "Reference"}],\n'
             '  "action_items": [{"title": "Action Item", "explanation": "Explanation", "severity": "MEDIUM"}],\n'
             '  "lawyer_questions": [{"title": "Question Title", "explanation": "Question to ask"}]\n'

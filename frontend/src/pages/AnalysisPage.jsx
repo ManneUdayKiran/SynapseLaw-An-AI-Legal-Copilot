@@ -11,6 +11,7 @@ const sections = [
   ['key_clauses', 'Key Clauses'],
   ['obligations', 'Obligations'],
   ['risks', 'Potential Risks'],
+  ['inconsistencies', 'Inconsistencies'],
   ['important_dates', 'Important Dates'],
   ['action_items', 'Action Checklist'],
   ['lawyer_questions', 'Questions for Lawyer']
@@ -41,6 +42,8 @@ export default function AnalysisPage() {
       ...(analysis.key_clauses || []).map(k => `- **${k.title}**: ${k.explanation || k.description}`),
       `\n## Identified Risks`,
       ...(analysis.risks || []).map(r => `- [${(r.severity || 'Medium').toUpperCase()}] **${r.title}**: ${r.explanation || r.description}`),
+      `\n## Contractual Inconsistencies`,
+      ...(analysis.inconsistencies || []).map(i => `- [${(i.severity || 'High').toUpperCase()}] **${i.title}**: ${i.explanation || i.description}`),
       `\n## Obligations`,
       ...(analysis.obligations || []).map(o => `- **${o.title}**: ${o.explanation || o.description}`),
       `\n## Action Items`,

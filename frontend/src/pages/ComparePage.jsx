@@ -131,6 +131,24 @@ export default function ComparePage() {
             <Typography sx={{ color: 'text.secondary', fontSize: '0.95rem' }}>
               {result.summary}
             </Typography>
+            {result.metrics && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, flexWrap: 'wrap' }}>
+                <Chip
+                  label={`Latency: ${result.metrics.total_response_ms ?? 0}ms`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+                />
+                {result.metrics.cache_hit && (
+                  <Chip
+                    label="Instant Fast-Path / Cached"
+                    size="small"
+                    color="success"
+                    sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+                  />
+                )}
+              </Box>
+            )}
           </Card>
 
 

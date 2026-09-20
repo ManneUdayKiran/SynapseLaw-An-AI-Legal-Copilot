@@ -24,6 +24,9 @@ class Finding(BaseModel):
 
 class PerformanceMetrics(BaseModel):
     document_processing_ms: float | None = None
+    extraction_ms: float | None = None
+    chunking_ms: float | None = None
+    embedding_ms: float | None = None
     retrieval_ms: float | None = None
     llm_generation_ms: float | None = None
     total_response_ms: float | None = None
@@ -37,6 +40,7 @@ class AnalysisResult(BaseModel):
     key_clauses: list[Finding] = Field(default_factory=list)
     obligations: list[Finding] = Field(default_factory=list)
     risks: list[Finding] = Field(default_factory=list)
+    inconsistencies: list[Finding] = Field(default_factory=list)
     important_dates: list[Finding] = Field(default_factory=list)
     action_items: list[Finding] = Field(default_factory=list)
     lawyer_questions: list[Finding] = Field(default_factory=list)
@@ -74,3 +78,4 @@ class CompareResponse(BaseModel):
     summary: str
     changes: list[ComparisonChange] = Field(default_factory=list)
     disclaimer: str = "LexiGuide provides informational assistance and does not replace professional legal advice."
+    metrics: PerformanceMetrics | None = None

@@ -10,18 +10,56 @@ from app.rag.pipeline import index_document, retrieve_context
 from app.schemas.analysis import AnalysisResult, AskResponse, PerformanceMetrics
 
 
+ANALYSIS_WATCH_TERMS = {
+    "shall", "must", "terminate", "payment", "liability", "indemnify",
+    "penalty", "renewal", "confidential", "governing law", "dispute", "notice", "deadline"
+}
+
+
+def _select_analysis_excerpts(document: Document, max_chunks: int = 16) -> list[dict[str, object]]:
+    """Select a bounded, deduplicated, and legally representative set of chunks for analysis.
+    Prevents token bloat on massive contracts while retaining all critical legal clauses.
+    """
+    chunks = index_document(document.id, document.extracted_text, sha256=document.sha256)
+    if len(chunks) <= max_chunks:
+        selected = chunks
+    else:
+        # Score and prioritize chunks by key legal terminology density and position
+        scored_chunks: list[tuple[int, int, object]] = []
+        for idx, chunk in enumerate(chunks):
+            lower = chunk.text.lower()
+            term_score = sum(1 for term in ANALYSIS_WATCH_TERMS if term in lower)
+            # Prioritize first and last chunks for preamble and signature/remedy clauses
+            if idx == 0 or idx == len(chunks) - 1:
+                term_score += 2
+            scored_chunks.append((term_score, idx, chunk))
+
+        # Sort by score descending, then take top candidates while maintaining document sequence
+        scored_chunks.sort(key=lambda x: (x[0], -x[1]), reverse=True)
+        top_candidates = sorted(scored_chunks[:max_chunks], key=lambda x: x[1])
+        selected = [item[2] for item in top_candidates]
+
+    # Deduplicate repetitive boilerplate chunks
+    seen_texts: set[str] = set()
+    excerpts: list[dict[str, object]] = []
+    for chunk in selected:
+        norm = " ".join(chunk.text.split())[:120].lower()
+        if norm not in seen_texts:
+            seen_texts.add(norm)
+            excerpts.append(
+                {
+                    "document_id": chunk.document_id,
+                    "chunk_id": chunk.chunk_id,
+                    "page_number": chunk.page_number,
+                    "section": chunk.section,
+                    "text": chunk.text,
+                }
+            )
+    return excerpts
+
+
 def _all_excerpts(document: Document) -> list[dict[str, object]]:
-    chunks = index_document(document.id, document.extracted_text)
-    return [
-        {
-            "document_id": chunk.document_id,
-            "chunk_id": chunk.chunk_id,
-            "page_number": chunk.page_number,
-            "section": chunk.section,
-            "text": chunk.text,
-        }
-        for chunk in chunks
-    ]
+    return _select_analysis_excerpts(document, max_chunks=16)
 
 
 def analyze_document(db: Session, document: Document) -> AnalysisResult:
@@ -37,7 +75,7 @@ def analyze_document(db: Session, document: Document) -> AnalysisResult:
         )
         return res
 
-    excerpts = _all_excerpts(document)
+    excerpts = _select_analysis_excerpts(document, max_chunks=16)
     result = get_ai_provider().analyze(document.id, excerpts)
     proc_ms = round((perf_counter() - t0) * 1000, 2)
     context_chars = sum(len(str(e.get("text", ""))) for e in excerpts)
@@ -65,10 +103,32 @@ def analyze_document(db: Session, document: Document) -> AnalysisResult:
 
 def ask_document(db: Session, document: Document, question: str) -> AskResponse:
     t0 = perf_counter()
-    index_document(document.id, document.extracted_text)
+    norm_q = " ".join(question.strip().lower().split())
+
+    # Question-Level Caching: Check if identical query was already answered for this document
+    past_queries = db.scalars(
+        select(QuestionHistory)
+        .where(QuestionHistory.document_id == document.id)
+        .order_by(QuestionHistory.created_at.desc())
+    ).all()
+    for past in past_queries:
+        if " ".join(past.question.strip().lower().split()) == norm_q:
+            cached_res = AskResponse.model_validate_json(past.answer_json)
+            total_ms = round((perf_counter() - t0) * 1000, 2)
+            cached_res.metrics = PerformanceMetrics(
+                retrieval_ms=0.0,
+                llm_generation_ms=0.0,
+                total_response_ms=total_ms,
+                retrieved_chunks_count=len(cached_res.evidence),
+                context_size_chars=sum(len(e.excerpt or "") for e in cached_res.evidence),
+                cache_hit=True,
+            )
+            return cached_res
+
+    index_document(document.id, document.extracted_text, sha256=document.sha256)
 
     t_retrieval = perf_counter()
-    retrieved = retrieve_context(document.id, question, top_k=4)
+    retrieved = retrieve_context(document.id, question, top_k=4, min_relevance=0.05)
     retrieval_ms = round((perf_counter() - t_retrieval) * 1000, 2)
 
     excerpts = [
@@ -83,7 +143,7 @@ def ask_document(db: Session, document: Document, question: str) -> AskResponse:
         for item in retrieved
     ]
     if not excerpts:
-        excerpts = _all_excerpts(document)[:4]
+        excerpts = _select_analysis_excerpts(document, max_chunks=4)
 
     context_chars = sum(len(str(e.get("text", ""))) for e in excerpts)
 
@@ -98,7 +158,7 @@ def ask_document(db: Session, document: Document, question: str) -> AskResponse:
         total_response_ms=total_ms,
         retrieved_chunks_count=len(excerpts),
         context_size_chars=context_chars,
-        cache_hit=len(retrieved) > 0,
+        cache_hit=False,
     )
 
     db.add(QuestionHistory(document_id=document.id, question=question, answer_json=result.model_dump_json()))

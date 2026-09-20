@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 
+# pyrefly: ignore [missing-import]
 import fitz
 from docx import Document as DocxDocument
 from fastapi import HTTPException, UploadFile, status
@@ -43,6 +44,9 @@ def extract_text(path: Path, extension: str) -> str:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
 
 
+from sqlalchemy.orm import Session, defer
+
+
 async def upload_document(db: Session, owner: User, file: UploadFile) -> Document:
     settings = get_settings()
     validated, data = await validate_upload(file, settings.max_upload_bytes)
@@ -60,7 +64,13 @@ async def upload_document(db: Session, owner: User, file: UploadFile) -> Documen
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid storage path")
     stored_path.write_bytes(data)
 
-    extracted = extract_text(stored_path, validated.extension)
+    # Content-Hash Optimization: Check if text was already extracted for this identical file
+    prev_doc = db.scalar(select(Document).where(Document.sha256 == validated.sha256))
+    if prev_doc and prev_doc.extracted_text:
+        extracted = prev_doc.extracted_text
+    else:
+        extracted = extract_text(stored_path, validated.extension)
+
     if not extracted:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Document contains no readable text")
 
@@ -68,7 +78,7 @@ async def upload_document(db: Session, owner: User, file: UploadFile) -> Documen
         owner_id=owner.id,
         filename=Path(file.filename or "document").name,
         stored_name=stored_name,
-        content_type=file.content_type or "application/octet-stream",
+        content_type=file.content_type or "text/plain",
         size_bytes=validated.size_bytes,
         sha256=validated.sha256,
         extracted_text=extracted,
@@ -76,7 +86,7 @@ async def upload_document(db: Session, owner: User, file: UploadFile) -> Documen
     db.add(document)
     db.commit()
     db.refresh(document)
-    chunks = index_document(document.id, extracted)
+    chunks = index_document(document.id, extracted, sha256=validated.sha256)
     document.chunk_count = len(chunks)
     db.commit()
     db.refresh(document)
@@ -92,5 +102,10 @@ def get_owned_document(db: Session, owner: User, document_id: str) -> Document:
 
 def list_documents(db: Session, owner: User) -> list[Document]:
     return list(
-        db.scalars(select(Document).where(Document.owner_id == owner.id).order_by(Document.created_at.desc()))
+        db.scalars(
+            select(Document)
+            .where(Document.owner_id == owner.id)
+            .options(defer(Document.extracted_text))
+            .order_by(Document.created_at.desc())
+        )
     )
