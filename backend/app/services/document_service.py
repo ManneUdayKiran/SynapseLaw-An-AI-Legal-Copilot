@@ -13,11 +13,11 @@ from app.rag.pipeline import index_document
 from app.utils.file_validation import validate_upload
 
 
+from app.core.security import strict_sanitize_contract_text
+
+
 def clean_text(text: str) -> str:
-    text = text.replace("\x00", " ")
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
+    return strict_sanitize_contract_text(text)
 
 
 def extract_text(path: Path, extension: str) -> str:

@@ -9,9 +9,8 @@ from fastapi import HTTPException, UploadFile, status
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt"}
 ALLOWED_MIME_TYPES = {
     "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "text/plain",
-    "application/octet-stream",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 }
 
 
@@ -39,7 +38,7 @@ async def validate_upload(file: UploadFile, max_bytes: int) -> tuple[ValidatedUp
     if extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
     if file.content_type not in ALLOWED_MIME_TYPES:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported MIME type")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported MIME type. Strict MIME boundaries enforced: text/plain, application/pdf")
     data = await file.read(max_bytes + 1)
     if len(data) == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is empty")

@@ -17,6 +17,7 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    configure_logging()
     get_settings.cache_clear()
     init_db()
     current_settings = get_settings()

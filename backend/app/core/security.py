@@ -58,10 +58,56 @@ def detect_prompt_injection(text: str) -> bool:
     return False
 
 
+import html
+import re
+import unicodedata
+
+HTML_TAG_RE = re.compile(r"<[^>]+>", re.DOTALL)
+HTML_SCRIPT_STYLE_RE = re.compile(r"<(script|style)[^>]*>.*?</\1>", re.DOTALL | re.IGNORECASE)
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\u200b\u200c\u200d\ufeff\u202a-\u202e\u2060-\u206f]")
+
+
+def strict_sanitize_contract_text(text: str) -> str:
+    """Perform strict input sanitization on contract text:
+    1. HTML stripping: Removes scripts, styles, HTML tags, and comments.
+    2. Control-character neutralization: Strips non-printable ASCII/Unicode control & zero-width characters.
+    3. Regex normalization: Normalizes Unicode (NFKC), collapses whitespace, and standardizes punctuation.
+    4. Blocks prompt delimiter escape injection vectors.
+    """
+    if not text:
+        return ""
+
+    # 1. HTML Stripping
+    cleaned = HTML_SCRIPT_STYLE_RE.sub(" ", text)
+    cleaned = HTML_COMMENT_RE.sub(" ", cleaned)
+    cleaned = HTML_TAG_RE.sub(" ", cleaned)
+    cleaned = html.unescape(cleaned)
+    # Secondary pass in case unescaped entities revealed secondary HTML tags
+    cleaned = HTML_TAG_RE.sub(" ", cleaned)
+
+    # 2. Control-character neutralization
+    cleaned = cleaned.replace("\r\n", "\n").replace("\r", "\n")
+    cleaned = CONTROL_CHARS_RE.sub(" ", cleaned)
+
+    # 3. Regex & Unicode normalization
+    cleaned = unicodedata.normalize("NFKC", cleaned)
+    # Normalize typographer quotes and dashes
+    cleaned = cleaned.replace("\u2018", "'").replace("\u2019", "'")
+    cleaned = cleaned.replace("\u201c", '"').replace("\u201d", '"')
+    cleaned = cleaned.replace("\u2013", "-").replace("\u2014", "-")
+
+    # Neutralize injection delimiters
+    cleaned = cleaned.replace("<untrusted_document_evidence>", "[untrusted_document_evidence]")
+    cleaned = cleaned.replace("</untrusted_document_evidence>", "[/untrusted_document_evidence]")
+
+    # Normalize excessive spaces and blank lines
+    cleaned = re.sub(r"[ \t]+", " ", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
 def sanitize_untrusted_text(text: str) -> str:
-    """Sanitize untrusted text by neutralizing injection delimiters and control sequences."""
-    text = text.replace("\x00", "")
-    text = text.replace("<untrusted_document_evidence>", "&lt;untrusted_document_evidence&gt;")
-    text = text.replace("</untrusted_document_evidence>", "&lt;/untrusted_document_evidence&gt;")
-    return text.strip()
+    """Sanitize untrusted text by neutralizing injection delimiters, HTML, and control sequences."""
+    return strict_sanitize_contract_text(text)
 

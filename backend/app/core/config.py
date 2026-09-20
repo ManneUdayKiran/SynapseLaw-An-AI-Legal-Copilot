@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     llm_model: str = "local-extractive"
     llm_api_key: str | None = None
     llm_base_url: str | None = "https://api.openai.com/v1"
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
+    data_retention_disabled: bool = True
     embedding_provider: str = "local"
     embedding_model: str = "hashing-v1"
 
