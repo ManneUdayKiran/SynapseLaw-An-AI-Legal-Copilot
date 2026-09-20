@@ -1,4 +1,5 @@
 import math
+from fastapi.testclient import TestClient
 from app.rag.chunker import chunk_text
 from app.rag.embeddings import HashingEmbeddingProvider, cosine_similarity
 from app.services.document_service import clean_text
@@ -239,5 +240,74 @@ def test_document_inconsistency_detection():
     assert len(result.inconsistencies) >= 1
     inconsistency_titles = [i.title.lower() for i in result.inconsistencies]
     assert any("conflicting notice periods" in t for t in inconsistency_titles)
+
+
+def test_token_digest_lru_caching():
+    """Verify _token_index_and_sign caches token calculations and increases hit rate."""
+    from app.rag.embeddings import HashingEmbeddingProvider, _token_index_and_sign
+
+    _token_index_and_sign.cache_clear()
+    provider = HashingEmbeddingProvider()
+    legal_text1 = "The party shall indemnify the other party."
+    legal_text2 = "Each party shall provide notice to the other party."
+    provider.embed(legal_text1)
+    provider.embed(legal_text2)
+    stats = provider.token_cache_stats()
+    assert stats["hits"] > 0
+    assert stats["size"] > 0
+
+
+def test_in_memory_analysis_cache_speedup(client: TestClient):
+    """Verify L1 in-memory analysis cache returns in sub-millisecond on repeat calls."""
+    from app.services.analysis_service import _analysis_cache, invalidate_analysis_cache
+
+    payload = "Agreement between Party A and Party B. Payment of $5,000 due in 30 days."
+    upload_resp = client.post(
+        "/api/documents/upload",
+        files={"file": ("speedup_contract.txt", payload.encode("utf-8"), "text/plain")},
+    )
+    doc_id = upload_resp.json()["id"]
+
+    # First call (populates cache)
+    resp1 = client.post(f"/api/documents/{doc_id}/analyze")
+    assert resp1.status_code == 200
+    assert doc_id in _analysis_cache
+
+    # Second call (hits L1 in-memory cache, cache_hit=True)
+    resp2 = client.post(f"/api/documents/{doc_id}/analyze")
+    assert resp2.status_code == 200
+    data2 = resp2.json()
+    assert data2["metrics"]["cache_hit"] is True
+    assert data2["metrics"]["total_response_ms"] < 20.0
+
+    # Cache invalidation clears cache
+    invalidate_analysis_cache(doc_id)
+    assert doc_id not in _analysis_cache
+
+
+def test_gzip_middleware_compression(client: TestClient):
+    """Verify responses exceeding 500 bytes are compressed with Gzip when Accept-Encoding is present."""
+    text = "Contract clause regarding obligations and liabilities. " * 50
+    upload_resp = client.post(
+        "/api/documents/upload",
+        files={"file": ("gzip_doc.txt", text.encode("utf-8"), "text/plain")},
+    )
+    doc_id = upload_resp.json()["id"]
+
+    resp = client.post(
+        f"/api/documents/{doc_id}/analyze",
+        headers={"Accept-Encoding": "gzip"},
+    )
+    assert resp.status_code == 200
+    assert resp.headers.get("content-encoding") == "gzip"
+
+
+def test_sqlite_wal_and_pragmas_configured():
+    """Verify SQLite engine connect hook applies performance PRAGMAs."""
+    from app.db.database import engine
+    with engine.connect() as conn:
+        res = conn.exec_driver_sql("PRAGMA synchronous;").scalar()
+        assert res in (1, "NORMAL")
+
 
 

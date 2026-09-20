@@ -12,14 +12,20 @@ def tokenize(text: str) -> list[str]:
     return [token.lower() for token in TOKEN_RE.findall(text)]
 
 
+@lru_cache(maxsize=8192)
+def _token_index_and_sign(token: str, dimensions: int = 256) -> tuple[int, float]:
+    digest = hashlib.sha256(token.encode("utf-8")).digest()
+    index = int.from_bytes(digest[:4], "big") % dimensions
+    sign = 1.0 if digest[4] % 2 == 0 else -1.0
+    return index, sign
+
+
 @lru_cache(maxsize=4096)
 def _compute_embedding(text: str, dimensions: int = 256) -> tuple[float, ...]:
     counts = Counter(tokenize(text))
     vector = [0.0] * dimensions
     for token, count in counts.items():
-        digest = hashlib.sha256(token.encode("utf-8")).digest()
-        index = int.from_bytes(digest[:4], "big") % dimensions
-        sign = 1.0 if digest[4] % 2 == 0 else -1.0
+        index, sign = _token_index_and_sign(token, dimensions)
         vector[index] += sign * (1.0 + math.log(count))
     norm = math.sqrt(sum(v * v for v in vector))
     return tuple(v / norm for v in vector) if norm else tuple(vector)
@@ -38,6 +44,11 @@ class HashingEmbeddingProvider:
     @staticmethod
     def cache_stats() -> dict[str, int]:
         info = _compute_embedding.cache_info()
+        return {"hits": info.hits, "misses": info.misses, "size": info.currsize}
+
+    @staticmethod
+    def token_cache_stats() -> dict[str, int]:
+        info = _token_index_and_sign.cache_info()
         return {"hits": info.hits, "misses": info.misses, "size": info.currsize}
 
 

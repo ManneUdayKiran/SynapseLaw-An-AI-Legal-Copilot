@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -46,7 +46,10 @@ class Document(Base):
     checklist_items: Mapped[list["ChecklistItem"]] = relationship(back_populates="document", cascade="all, delete-orphan")
     questions: Mapped[list["QuestionHistory"]] = relationship(back_populates="document", cascade="all, delete-orphan")
 
-    __table_args__ = (UniqueConstraint("owner_id", "sha256", name="uq_owner_document_hash"),)
+    __table_args__ = (
+        UniqueConstraint("owner_id", "sha256", name="uq_owner_document_hash"),
+        Index("ix_documents_owner_sha256", "owner_id", "sha256"),
+    )
 
 
 class Analysis(Base):
@@ -58,6 +61,10 @@ class Analysis(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     document: Mapped[Document] = relationship(back_populates="analyses")
+
+    __table_args__ = (
+        Index("ix_analyses_doc_created", "document_id", "created_at"),
+    )
 
 
 class ChecklistItem(Base):
@@ -82,3 +89,7 @@ class QuestionHistory(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     document: Mapped[Document] = relationship(back_populates="questions")
+
+    __table_args__ = (
+        Index("ix_question_doc_q", "document_id", "question"),
+    )

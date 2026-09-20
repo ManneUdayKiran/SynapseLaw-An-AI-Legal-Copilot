@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
@@ -6,7 +6,12 @@ from app.db.database import get_db
 from app.db.models import User
 from app.schemas.analysis import AnalysisResult, AskRequest, AskResponse
 from app.schemas.document import ChecklistItemRead, ChecklistUpdate, DocumentRead
-from app.services.analysis_service import analyze_document, ask_document
+from app.services.analysis_service import (
+    analyze_document,
+    ask_document,
+    invalidate_analysis_cache,
+    prewarm_document_analysis,
+)
 from app.services.document_service import get_owned_document, list_documents, upload_document
 
 
@@ -14,8 +19,15 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 
 @router.post("/upload", response_model=DocumentRead, status_code=201)
-async def upload(file: UploadFile, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return await upload_document(db, current_user, file)
+async def upload(
+    file: UploadFile,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    doc = await upload_document(db, current_user, file)
+    background_tasks.add_task(prewarm_document_analysis, doc.id)
+    return doc
 
 
 @router.get("", response_model=list[DocumentRead])
@@ -31,6 +43,7 @@ def get_document(document_id: str, db: Session = Depends(get_db), current_user: 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_document(document_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     document = get_owned_document(db, current_user, document_id)
+    invalidate_analysis_cache(document.id)
     db.delete(document)
     db.commit()
 

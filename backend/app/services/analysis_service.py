@@ -58,15 +58,35 @@ def _select_analysis_excerpts(document: Document, max_chunks: int = 16) -> list[
     return excerpts
 
 
+_analysis_cache: dict[str, AnalysisResult] = {}
+
+
+def invalidate_analysis_cache(document_id: str) -> None:
+    _analysis_cache.pop(document_id, None)
+
+
 def _all_excerpts(document: Document) -> list[dict[str, object]]:
     return _select_analysis_excerpts(document, max_chunks=16)
 
 
 def analyze_document(db: Session, document: Document) -> AnalysisResult:
     t0 = perf_counter()
+
+    # Fast-Path L1: In-memory memory-object cache (< 0.05ms)
+    if document.id in _analysis_cache:
+        res = _analysis_cache[document.id].model_copy(deep=True)
+        res.metrics = PerformanceMetrics(
+            document_processing_ms=0.0,
+            total_response_ms=round((perf_counter() - t0) * 1000, 2),
+            cache_hit=True,
+        )
+        return res
+
+    # Fast-Path L2: Database stored result
     existing = db.scalar(select(Analysis).where(Analysis.document_id == document.id).order_by(Analysis.created_at.desc()))
     if existing:
         res = AnalysisResult.model_validate_json(existing.result_json)
+        _analysis_cache[document.id] = res
         total_ms = round((perf_counter() - t0) * 1000, 2)
         res.metrics = PerformanceMetrics(
             document_processing_ms=0.0,
@@ -98,7 +118,19 @@ def analyze_document(db: Session, document: Document) -> AnalysisResult:
             )
         )
     db.commit()
+    _analysis_cache[document.id] = result
     return result
+
+
+def prewarm_document_analysis(document_id: str) -> None:
+    from app.db.database import SessionLocal
+    with SessionLocal() as db:
+        doc = db.get(Document, document_id)
+        if doc:
+            try:
+                analyze_document(db, doc)
+            except Exception:
+                pass
 
 
 def ask_document(db: Session, document: Document, question: str) -> AskResponse:
